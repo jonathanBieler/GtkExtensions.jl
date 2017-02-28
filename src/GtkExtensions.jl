@@ -5,17 +5,19 @@ export text_iter_get_text, text_iter_forward_line, text_iter_backward_line, text
 	   text_iter_backward_word_start, text_iter_forward_search, text_iter_backward_search, show_iter,
 	   text_buffer_place_cursor, get_iter_at_position, text_view_window_to_buffer_coords, get_current_page_idx,
 	   set_current_page_idx, get_tab, set_position!, text_buffer_copy_clipboard, set_tab_label_text,
-       MutableGtkTextIter, GtkTextIters, @GtkEventBox,GtkEventBox, GtkCssProviderFromData, GtkIconThemeAddResourcePath,
+       MutableGtkTextIter, GtkTextIters, @GtkEventBox,GtkEventBox, GtkCssProviderFromData!, GtkIconThemeAddResourcePath,
        GtkIconThemeGetDefault, index, style_css, text, PROPAGATE, INTERRUPT, get_default_mod_mask,
        selection_bounds, end_iter, text_buffer_create_mark, text_buffer_get_iter_at_mark, line_count,
        cursor_locations, gdk_window_get_origin, g_timeout_add, g_idle_add, delete_text, insert_text, insert,
-       response, GdkKeySyms, offset, mutable, text_view_buffer_to_window_coords
+       response, GdkKeySyms, offset, mutable, nonmutable, text_view_buffer_to_window_coords, grab_focus,
+       text_iter_backward_sentence_start, text_iter_forward_sentence_end, hide, line, show, scroll_to_iter, css_provider,
+	   push!, GtkCssProviderLeaf, GtkCssProvider, getbuffer
 
 using Gtk
 
-import ..Gtk: suffix
+import ..Gtk: suffix, GtkCssProviderLeaf, GtkCssProvider
 import Gtk.GtkTextIter, Gtk.libgtk
-import Base: foreach
+import Base: foreach, push!
 
 const PROPAGATE = convert(Cint,false)
 const INTERRUPT = convert(Cint,true)
@@ -271,20 +273,14 @@ text_buffer_copy_clipboard(buffer::GtkTextBuffer,clip::GtkClipboard)  = ccall((:
 
 
 ##
-function GtkCssProviderFromData(;data=nothing,filename=nothing)
+function GtkCssProviderFromData!(provider::GtkCssProvider;data=nothing,filename=nothing)
     source_count = (data!==nothing) + (filename!==nothing)
     @assert(source_count <= 1,
         "GtkCssProvider must have at most one data or filename argument")
 
-#    getting the default changes style on all widgets
-#    provider = GtkCssProviderLeaf(ccall((:gtk_css_provider_get_default,libgtk),Ptr{Gtk.GObject},()))
-    provider = GtkCssProviderLeaf(ccall((:gtk_css_provider_new,libgtk),Ptr{Gtk.GObject},()))
-
     if data !== nothing
         Gtk.GError() do error_check
-          #@show provider
-          #@show data
-          #@show error_check
+
           ccall((:gtk_css_provider_load_from_data,libgtk), Bool,
             (Ptr{Gtk.GObject}, Ptr{UInt8}, Clong, Ptr{Ptr{Gtk.GError}}),
             provider, string(data), sizeof(data), error_check)
@@ -299,9 +295,22 @@ function GtkCssProviderFromData(;data=nothing,filename=nothing)
     return provider
 end
 
+#TODO fix with Gtk.jl
+GtkCssProviderLeaf() = GtkCssProviderLeaf(ccall((:gtk_css_provider_new,libgtk),Ptr{Gtk.GObject},()))
+
+push!(context::GtkStyleContext, provider::GtkCssProvider, priority::Integer) =
+  ccall((:gtk_style_context_add_provider, libgtk), Void, (Ptr{GObject}, Ptr{GObject}, Cuint),
+		 context, provider, priority)
+
 function style_css(w::Gtk.GtkWidget,css::AbstractString)
   sc = Gtk.G_.style_context(w)
-  push!(sc, GtkStyleProvider(GtkCssProviderFromData(data=css)), 600)
+  provider = @GtkCssProvider()
+  push!(sc, GtkCssProviderFromData!(provider,data=css), 600)
+end
+
+function style_css(w::Gtk.GtkWidget,provider::GtkCssProvider)
+  sc = Gtk.G_.style_context(w)
+  push!(sc, provider, 600)
 end
 
 ## Gdk
@@ -465,6 +474,14 @@ end
 function text(s::GtkStatusbar,txt::AbstractString)
     sbidx = Gtk.context_id(s, "context")
     push!(s,sbidx,txt)
+end
+
+function __init__()
+    global const default_css_provider = GtkCssProviderLeaf(
+        ccall((:gtk_css_provider_get_default,libgtk),Ptr{Gtk.GObject},())
+    )
+
+
 end
 
 end#module
