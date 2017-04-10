@@ -1,6 +1,7 @@
 __precompile__()
 module GtkExtensions
 
+# nice exports !
 export text_iter_get_text, text_iter_forward_line, text_iter_backward_line, text_iter_forward_to_line_end, text_iter_forward_word_end,
 	   text_iter_backward_word_start, text_iter_forward_search, text_iter_backward_search, show_iter,
 	   text_buffer_place_cursor, get_iter_at_position, text_view_window_to_buffer_coords, get_current_page_idx,
@@ -11,12 +12,13 @@ export text_iter_get_text, text_iter_forward_line, text_iter_backward_line, text
        cursor_locations, gdk_window_get_origin, g_timeout_add, g_idle_add, delete_text, insert_text, insert,
        response, GdkKeySyms, offset, mutable, nonmutable, text_view_buffer_to_window_coords, grab_focus,
        text_iter_backward_sentence_start, text_iter_forward_sentence_end, hide, line, show, scroll_to_iter, css_provider,
-	   push!, GtkCssProviderLeaf, GtkCssProvider, getbuffer
+	   push!, GtkCssProviderLeaf, GtkCssProvider, getbuffer, iter_nth_child, GtkIconThemeLoadIconForScale,
+       expand_root, model, set_cursor_on_cell, expand, treepath, foreach, selection, selected, select_value
 
 using Gtk
 
 import ..Gtk: suffix, GtkCssProviderLeaf, GtkCssProvider
-import Gtk.GtkTextIter, Gtk.libgtk
+import Gtk: GtkTextIter, libgtk, iter_nth_child, selected
 import Base: foreach, push!
 
 const PROPAGATE = convert(Cint,false)
@@ -304,7 +306,7 @@ push!(context::GtkStyleContext, provider::GtkCssProvider, priority::Integer) =
 
 function style_css(w::Gtk.GtkWidget,css::AbstractString)
   sc = Gtk.G_.style_context(w)
-  provider = @GtkCssProvider()
+  provider = GtkCssProvider()
   push!(sc, GtkCssProviderFromData!(provider,data=css), 600)
 end
 
@@ -418,10 +420,18 @@ end
 
 function model(tree_view::Gtk.GtkTreeView)
     return convert(Gtk.GtkTreeStore,
-                   ccall((:gtk_tree_view_get_model, Gtk.libgtk),
-                   Ptr{Gtk.GObject},
-                  (Ptr{Gtk.GObject},),
-                  tree_view))
+        ccall((:gtk_tree_view_get_model, Gtk.libgtk),
+        Ptr{Gtk.GObject},
+        (Ptr{Gtk.GObject},),
+        tree_view))
+end
+
+function selection(tree_view::Gtk.GtkTreeView)
+    return convert(Gtk.GtkTreeSelection,
+        ccall((:gtk_tree_view_get_selection,Gtk.libgtk),
+        Ptr{Gtk.GObject},
+        (Ptr{Gtk.GObject},),
+        tree_view))
 end
 
 function set_cursor_on_cell(tree_view::Gtk.GtkTreeView, path::Gtk.GtkTreePath)
@@ -449,6 +459,26 @@ function treepath(path::AbstractString)
     end
 end
 expand_root(tree_view::GtkTreeView) = expand(tree_view,treepath("0"))
+
+function selected(tree_view::GtkTreeView,list::GtkTreeStore)
+    selmodel = selection(tree_view)
+    if hasselection(selmodel)
+        iter = selected(selmodel)
+        return list[iter]
+    end
+    return nothing
+end
+
+#select the first entry that is equal to v
+function select_value(tree_view::GtkTreeView,list::GtkTreeStore,v)
+    selmodel = Gtk.G_.selection(tree_view)
+    for i = 1:length(list)
+        if list[i] == v
+            select!(selmodel, Gtk.iter_from_index(list, i))
+            return
+        end
+    end
+end
 
 #GtkTreeModel
 function foreach(model::Gtk.GtkTreeModel, f::Function, data)
