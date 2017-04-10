@@ -510,8 +510,6 @@ function __init__()
     global const default_css_provider = GtkCssProviderLeaf(
         ccall((:gtk_css_provider_get_default,libgtk),Ptr{Gtk.GObject},())
     )
-
-
 end
 
 end#module
