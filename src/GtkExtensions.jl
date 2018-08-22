@@ -1,4 +1,3 @@
-__precompile__()
 module GtkExtensions
 
 # nice exports !
@@ -33,15 +32,15 @@ get_default_mod_mask() = ccall((:gtk_accelerator_get_default_mod_mask , libgtk),
 
 ## Widget
 
-grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr{Gtk.GObject},),w)#this should work?
-grab_focus(w::Gtk.GtkWindow) = ccall((:gtk_widget_grab_focus , libgtk),Void,(Ptr{Gtk.GObject},),w)
-hide(w::Gtk.GtkWidget) = ccall((:gtk_widget_hide , libgtk),Void,(Ptr{Gtk.GObject},),w)
+grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , libgtk),Cvoid,(Ptr{Gtk.GObject},),w)#this should work?
+grab_focus(w::Gtk.GtkWindow) = ccall((:gtk_widget_grab_focus , libgtk),Cvoid,(Ptr{Gtk.GObject},),w)
+hide(w::Gtk.GtkWidget) = ccall((:gtk_widget_hide , libgtk),Cvoid,(Ptr{Gtk.GObject},),w)
 
 
 ## TextIters
 
-typealias MutableGtkTextIter Gtk.GLib.MutableTypes.Mutable{GtkTextIter}
-typealias GtkTextIters Union{MutableGtkTextIter,GtkTextIter}
+const MutableGtkTextIter = Gtk.GLib.MutableTypes.Mutable{GtkTextIter}
+const GtkTextIters = Union{MutableGtkTextIter,GtkTextIter}
 mutable(it::GtkTextIter) = Gtk.GLib.MutableTypes.mutable(it)
 
 offset(it::GtkTextIters) = getproperty(it,:offset,Integer)
@@ -116,19 +115,19 @@ function selection_bounds(buffer::Gtk.GtkTextBuffer)
             Ptr{GtkTextIter},Ptr{GtkTextIter}),buffer,its,ite)),its,ite)
 end
 function selection_bounds(buffer::Gtk.GtkTextBuffer,ins::GtkTextIter,bound::GtkTextIter)
-    ccall((:gtk_text_buffer_select_range,libgtk),Void,(Ptr{Gtk.GObject},Ref{GtkTextIter},Ref{GtkTextIter}),buffer,ins,bound)
+    ccall((:gtk_text_buffer_select_range,libgtk),Cvoid,(Ptr{Gtk.GObject},Ref{GtkTextIter},Ref{GtkTextIter}),buffer,ins,bound)
 end
 function selection_bounds(buffer::Gtk.GtkTextBuffer,ins::MutableGtkTextIter,bound::MutableGtkTextIter)
-    ccall((:gtk_text_buffer_select_range,libgtk),Void,(Ptr{Gtk.GObject},Ptr{GtkTextIter},Ptr{GtkTextIter}),buffer,ins,bound)
+    ccall((:gtk_text_buffer_select_range,libgtk),Cvoid,(Ptr{Gtk.GObject},Ptr{GtkTextIter},Ptr{GtkTextIter}),buffer,ins,bound)
 end
 ##
 function end_iter(buffer::Gtk.GtkTextBuffer)
     iter = Gtk.mutable(GtkTextIter)
-    ccall((:gtk_text_buffer_get_end_iter,libgtk),Void,(Ptr{Gtk.GObject},Ptr{GtkTextIter}),buffer,iter)
+    ccall((:gtk_text_buffer_get_end_iter,libgtk),Cvoid,(Ptr{Gtk.GObject},Ptr{GtkTextIter}),buffer,iter)
     return iter
 end
 
-text_buffer_place_cursor(buffer::GtkTextBuffer,it::GtkTextIter)  = ccall((:gtk_text_buffer_place_cursor,  libgtk),Void,(Ptr{Gtk.GObject},Ref{GtkTextIter}),buffer,it)
+text_buffer_place_cursor(buffer::GtkTextBuffer,it::GtkTextIter)  = ccall((:gtk_text_buffer_place_cursor,  libgtk),Cvoid,(Ptr{Gtk.GObject},Ref{GtkTextIter}),buffer,it)
 text_buffer_place_cursor(buffer::GtkTextBuffer,pos::Int) = text_buffer_place_cursor(buffer,GtkTextIter(buffer,pos+1))
 text_buffer_place_cursor(buffer::GtkTextBuffer,it::MutableGtkTextIter) = text_buffer_place_cursor(buffer,nonmutable(buffer,it))
 
@@ -139,7 +138,7 @@ text_buffer_create_mark(buffer::GtkTextBuffer,it::GtkTextIters)  = text_buffer_c
 
 function text_buffer_get_iter_at_mark(buffer::GtkTextBuffer,mark::GtkTextMark)
     iter = mutable(GtkTextIter())
-    ccall((:gtk_text_buffer_get_iter_at_mark,  libgtk),Void,(Ptr{Gtk.GObject},Ptr{MutableGtkTextIter},Ptr{Gtk.GObject}),buffer,iter,mark)
+    ccall((:gtk_text_buffer_get_iter_at_mark,  libgtk),Cvoid,(Ptr{Gtk.GObject},Ptr{MutableGtkTextIter},Ptr{Gtk.GObject}),buffer,iter,mark)
     return iter
 end
 
@@ -147,7 +146,7 @@ line_count(buffer::GtkTextBuffer) = ccall((:gtk_text_buffer_get_line_count,libgt
 
 ## TextView
 
-get_iter_at_position(text_view::Gtk.GtkTextView,iter::MutableGtkTextIter,trailing,x::Int32,y::Int32) = ccall((:gtk_text_view_get_iter_at_position,libgtk),Void,
+get_iter_at_position(text_view::Gtk.GtkTextView,iter::MutableGtkTextIter,trailing,x::Int32,y::Int32) = ccall((:gtk_text_view_get_iter_at_position,libgtk),Cvoid,
 	(Ptr{Gtk.GObject},Ptr{GtkTextIter},Ptr{Cint},Cint,Cint),text_view,iter,trailing,x,y)
 
 function get_iter_at_position(text_view::Gtk.GtkTextView,x::Integer,y::Integer)
@@ -162,7 +161,7 @@ function text_view_window_to_buffer_coords(text_view::Gtk.GtkTextView,wintype::I
 	buffer_x = Gtk.mutable(Cint)
 	buffer_y = Gtk.mutable(Cint)
 
-	ccall((:gtk_text_view_window_to_buffer_coords,libgtk),Void,
+	ccall((:gtk_text_view_window_to_buffer_coords,libgtk),Cvoid,
 		(Ptr{Gtk.GObject},Cint,Cint,Cint,Ptr{Cint},Ptr{Cint}),text_view,Int32(wintype),window_x,window_y,buffer_x,buffer_y)
 
 	return (buffer_x[],buffer_y[])
@@ -174,7 +173,7 @@ function text_view_buffer_to_window_coords(text_view::Gtk.GtkTextView,wintype::I
 	window_x = Gtk.mutable(Cint)
 	window_y = Gtk.mutable(Cint)
 
-	ccall((:gtk_text_view_buffer_to_window_coords,libgtk),Void,
+	ccall((:gtk_text_view_buffer_to_window_coords,libgtk),Cvoid,
 		(Ptr{Gtk.GObject},Cint,Cint,Cint,Ptr{Cint},Ptr{Cint}),text_view,Int32(wintype),buffer_x,buffer_y,window_x,window_y)
 
 	return (window_x[],window_y[])
@@ -187,7 +186,7 @@ function cursor_locations(text_view::Gtk.GtkTextView)
     buffer = getproperty(text_view,:buffer,GtkTextBuffer)
     iter = mutable( GtkTextIter(buffer, getproperty(buffer,:cursor_position,Int)) )
 
-    ccall((:gtk_text_view_get_cursor_locations,libgtk),Void,(Ptr{Gtk.GObject},Ptr{GtkTextIter},Ptr{Gtk.GdkRectangle},Ptr{Gtk.GdkRectangle}),text_view,iter,strong,weak)
+    ccall((:gtk_text_view_get_cursor_locations,libgtk),Cvoid,(Ptr{Gtk.GObject},Ptr{GtkTextIter},Ptr{Gtk.GdkRectangle},Ptr{Gtk.GdkRectangle}),text_view,iter,strong,weak)
     return (iter,strong[],weak[])
 end
 
@@ -204,7 +203,7 @@ scroll_to_iter(text_view::Gtk.GtkTextView,iter::GtkTextIters) = scroll_to_iter(t
 # notebook
 get_current_page_idx(notebook::Gtk.GtkNotebook) = ccall((:gtk_notebook_get_current_page,libgtk),Cint,
     (Ptr{Gtk.GObject},),notebook)+1
-set_current_page_idx(notebook::Gtk.GtkNotebook,page_num::Int) = ccall((:gtk_notebook_set_current_page,libgtk),Void,
+set_current_page_idx(notebook::Gtk.GtkNotebook,page_num::Int) = ccall((:gtk_notebook_set_current_page,libgtk),Cvoid,
     (Ptr{Gtk.GObject},Cint),notebook,page_num-1)
 
 index(notebook::GtkNotebook) = get_current_page_idx(notebook)
@@ -214,11 +213,11 @@ index(notebook::GtkNotebook, child::Gtk.GtkWidget) = pagenumber(notebook, child)
 get_tab(notebook::Gtk.GtkNotebook,page_num::Int) = convert(Gtk.GtkWidget,ccall((:gtk_notebook_get_nth_page,libgtk),Ptr{Gtk.GObject},
 	(Ptr{Gtk.GObject},Cint),notebook,page_num-1))
 
-set_tab_label_text(notebook::Gtk.GtkNotebook,child,tab_text) = ccall((:gtk_notebook_set_tab_label_text,Gtk.libgtk),Void,(Ptr{Gtk.GObject},
+set_tab_label_text(notebook::Gtk.GtkNotebook,child,tab_text) = ccall((:gtk_notebook_set_tab_label_text,Gtk.libgtk),Cvoid,(Ptr{Gtk.GObject},
 Ptr{Gtk.GObject},Ptr{UInt8}),notebook,child,tab_text)
 
 popup_disble(notebook::Gtk.GtkNotebook) = ccall((:gtk_notebook_popup_disable ,Gtk.libgtk),
-      Void,
+      Cvoid,
       (Ptr{Gtk.GObject},),
       notebook)
 import Base.insert!
@@ -233,7 +232,7 @@ end
 ## entry
 
 function set_position!(editable::Gtk.Entry,position_)
-    ccall((:gtk_editable_set_position,libgtk),Void,(Ptr{Gtk.GObject},Cint),editable,position_)
+    ccall((:gtk_editable_set_position,libgtk),Cvoid,(Ptr{Gtk.GObject},Cint),editable,position_)
 end
 
 #####  GtkClipboard #####
@@ -258,9 +257,9 @@ end
 GtkClipboardLeaf(selection::UInt16) =  GtkClipboardLeaf(ccall((:gtk_clipboard_get,libgtk), Ptr{GObject},
     (UInt16,), selection))
 GtkClipboardLeaf() = GtkClipboardLeaf(GdkAtoms.SELECTION_CLIPBOARD)
-clipboard_set_text(clip::GtkClipboard,text::AbstractString) = ccall((:gtk_clipboard_set_text,libgtk), Void,
+clipboard_set_text(clip::GtkClipboard,text::AbstractString) = ccall((:gtk_clipboard_set_text,libgtk), Cvoid,
     (Ptr{GObject}, Ptr{UInt8},Cint), clip, text, sizeof(text))
-clipboard_store(clip::GtkClipboard) = ccall((:gtk_clipboard_store,libgtk), Void,
+clipboard_store(clip::GtkClipboard) = ccall((:gtk_clipboard_store,libgtk), Cvoid,
     (Ptr{GObject},), clip)
 
 #note: this needs main_loops to run
@@ -270,7 +269,7 @@ function clipboard_wait_for_text(clip::GtkClipboard)
     return ptr == C_NULL ? "" : unsafe_string(ptr)
 end
 
-text_buffer_copy_clipboard(buffer::GtkTextBuffer,clip::GtkClipboard)  = ccall((:gtk_text_buffer_copy_clipboard, libgtk),Void,
+text_buffer_copy_clipboard(buffer::GtkTextBuffer,clip::GtkClipboard)  = ccall((:gtk_text_buffer_copy_clipboard, libgtk),Cvoid,
     (Ptr{GObject},Ptr{GObject}),buffer,clip)
 
 
@@ -301,7 +300,7 @@ end
 GtkCssProviderLeaf() = GtkCssProviderLeaf(ccall((:gtk_css_provider_new,libgtk),Ptr{Gtk.GObject},()))
 
 push!(context::GtkStyleContext, provider::GtkCssProvider, priority::Integer) =
-  ccall((:gtk_style_context_add_provider, libgtk), Void, (Ptr{GObject}, Ptr{GObject}, Cuint),
+  ccall((:gtk_style_context_add_provider, libgtk), Cvoid, (Ptr{GObject}, Ptr{GObject}, Cuint),
 		 context, provider, priority)
 
 function style_css(w::Gtk.GtkWidget,css::AbstractString)
@@ -337,24 +336,24 @@ true)
 
 function g_timeout_add(interval::Integer,cb,user_data)
 
-    callback = cfunction(cb,Cint,(Ptr{Void},))
+    callback = cfunction(cb,Cint,(Ptr{Cvoid},))
 
     ref, deref = Gtk.GLib.gc_ref_closure(user_data)#not sure about that
     interval = UInt32(interval)
 
     return ccall((:g_timeout_add, Gtk.GLib.libglib),Cint,
-        (UInt32, Ptr{Void}, Ptr{Void}),
+        (UInt32, Ptr{Cvoid}, Ptr{Cvoid}),
          interval, callback, ref)
 end
 
 function g_idle_add(cb,user_data)
 
-    callback = cfunction(cb,Cint,(Ptr{Void},))
+    callback = cfunction(cb,Cint,(Ptr{Cvoid},))
 
     ref, deref = Gtk.GLib.gc_ref_closure(user_data)#not sure about that
 
     return ccall((:g_idle_add, Gtk.GLib.libglib),Cint,
-        (Ptr{Void}, Ptr{Void}),
+        (Ptr{Cvoid}, Ptr{Cvoid}),
          callback, ref)
 end
 
@@ -362,7 +361,7 @@ end
 GtkIconThemeGetDefault() =  ccall((:gtk_icon_theme_get_default,Gtk.libgtk),Ptr{GObject},())
 
 GtkIconThemeAddResourcePath(iconTheme,path::AbstractString) =  ccall(
-                                                                   (:gtk_icon_theme_append_search_path,Gtk.libgtk),Void,
+                                                                   (:gtk_icon_theme_append_search_path,Gtk.libgtk),Cvoid,
                                                                    (Ptr{GObject}, Ptr{UInt8}),
                                                                    iconTheme,
                                                                    path);
@@ -382,11 +381,11 @@ end
 Gtk.@Gtype GtkEntryBuffer Gtk.libgtk gtk_entry_buffer
 
 function delete_text(entry::GtkEntryBuffer, position::Integer, n_chars::Integer)
-    return ccall((:gtk_entry_buffer_delete_text,Gtk.libgtk),Ptr{Void},(Ptr{Gtk.GObject},Cuint,Cint),entry,position,n_chars)
+    return ccall((:gtk_entry_buffer_delete_text,Gtk.libgtk),Ptr{Cvoid},(Ptr{Gtk.GObject},Cuint,Cint),entry,position,n_chars)
 end
 function insert_text(entry::GtkEntryBuffer, position::Integer, data::AbstractString, n_chars::Integer)
     return ccall((:gtk_entry_buffer_insert_text,Gtk.libgtk),
-                 Ptr{Void},
+                 Ptr{Cvoid},
                  (Ptr{Gtk.GObject},Cuint,Cstring,Cint),
                  entry,position,pointer(data),n_chars)
 end
@@ -396,7 +395,7 @@ end
 
 ##GtkTreeStore
 function insert(store::GtkTreeStore, it::GtkTreeIter, parent::GtkTreeIter, pos::Int)
-    ccall((:gtk_tree_store_insert, Gtk.libgtk), Void,  (Ptr{Gtk.GObject},Ptr{Gtk.GtkTreeIter},Ptr{Gtk.GtkTreeIter},Cint),
+    ccall((:gtk_tree_store_insert, Gtk.libgtk), Cvoid,  (Ptr{Gtk.GObject},Ptr{Gtk.GtkTreeIter},Ptr{Gtk.GtkTreeIter},Cint),
             store,it,parent,pos)
 end
 
@@ -436,14 +435,14 @@ end
 
 function set_cursor_on_cell(tree_view::Gtk.GtkTreeView, path::Gtk.GtkTreePath)
     return  ccall((:gtk_tree_view_set_cursor_on_cell , Gtk.libgtk),
-                   Void,
+                   Cvoid,
                   (Ptr{Gtk.GObject},Ptr{Gtk.GtkTreePath},Ptr{Gtk.GObject},Ptr{Gtk.GObject},Cint),
                   tree_view,path,C_NULL,C_NULL,false)
 end
 
 import Base.expand
 function expand(tree_view::GtkTreeView,path::GtkTreePath)
-    return  ccall((:gtk_tree_view_expand_to_path,libgtk),Void,
+    return  ccall((:gtk_tree_view_expand_to_path,libgtk),Cvoid,
                   (Ptr{Gtk.GObject},Ptr{Gtk.GtkTreePath}),
                   tree_view,path)
 end
@@ -474,7 +473,7 @@ function select_value(tree_view::GtkTreeView,list::GtkTreeStore,v)
     selmodel = Gtk.G_.selection(tree_view)
     for i = 1:length(list)
         if list[i] == v
-            select!(selmodel, Gtk.iter_from_index(list, i))
+            partialsort!(selmodel, Gtk.iter_from_index(list, i))
             return
         end
     end
@@ -482,9 +481,9 @@ end
 
 #GtkTreeModel
 function foreach(model::Gtk.GtkTreeModel, f::Function, data)
-  const foreach_function = cfunction(f, Cint, (Ptr{Gtk.GObject}, Ptr{Gtk.GtkTreePath}, Ptr{Gtk.GtkTreeIter}, Ptr{Void}))
-   ccall((:gtk_tree_model_foreach, Gtk.libgtk),      Void,
-                (Ptr{Gtk.GObject},Ptr{Void}, Ptr{Void}),
+  foreach_function = cfunction(f, Cint, (Ptr{Gtk.GObject}, Ptr{Gtk.GtkTreePath}, Ptr{Gtk.GtkTreeIter}, Ptr{Cvoid}))
+   ccall((:gtk_tree_model_foreach, Gtk.libgtk),      Cvoid,
+                (Ptr{Gtk.GObject},Ptr{Cvoid}, Ptr{Cvoid}),
                 model,foreach_function,pointer_from_objref(data))
 end
 #GtkEventBox
@@ -494,7 +493,7 @@ GtkEventBoxLeaf() =  GtkEventBoxLeaf(ccall((:gtk_event_box_new ,libgtk), Ptr{GOb
 
 #GtkDialog
 function response(dialog::Gtk.GtkDialog, response::Integer)
-    ccall((:gtk_dialog_response, Gtk.libgtk), Void,
+    ccall((:gtk_dialog_response, Gtk.libgtk), Cvoid,
        (Ptr{Gtk.GObject}, Cint),
        dialog,response)
 end
