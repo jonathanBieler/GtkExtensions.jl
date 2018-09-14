@@ -43,8 +43,8 @@ const MutableGtkTextIter = Gtk.GLib.MutableTypes.Mutable{GtkTextIter}
 const GtkTextIters = Union{MutableGtkTextIter,GtkTextIter}
 mutable(it::GtkTextIter) = Gtk.GLib.MutableTypes.mutable(it)
 
-offset(it::GtkTextIters) = getproperty(it,:offset,Integer)
-line(it::GtkTextIters) = getproperty(it,:line,Integer)+1#Gtk counts from zero
+offset(it::GtkTextIters) = get_gtk_property(it,:offset,Integer)
+line(it::GtkTextIters) = get_gtk_property(it,:line,Integer)+1#Gtk counts from zero
 nonmutable(buffer::GtkTextBuffer,it::MutableGtkTextIter) = GtkTextIter(buffer,offset(it)+1)#this allows to convert to GtkTextBuffer without the -1 definition in Gtk.jl
 
 getbuffer(it::GtkTextIter) = convert(GtkTextBuffer,
@@ -85,7 +85,7 @@ text_iter_forward_search(it::MutableGtkTextIter, txt::AbstractString, start::Mut
 function text_iter_forward_search(buffer::GtkTextBuffer, txt::AbstractString)
   its = mutable(GtkTextIter(buffer))
   ite = mutable(GtkTextIter(buffer))
-  found = text_iter_forward_search(mutable( GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))),txt,its,ite,mutable(GtkTextIter(buffer,length(buffer)+1)))
+  found = text_iter_forward_search(mutable( GtkTextIter(buffer,get_gtk_property(buffer,:cursor_position,Int))),txt,its,ite,mutable(GtkTextIter(buffer,length(buffer)+1)))
 
   return (found==1,its,ite)
 end
@@ -98,7 +98,7 @@ text_iter_backward_search(it::MutableGtkTextIter, txt::AbstractString, start::Mu
 function text_iter_backward_search(buffer::GtkTextBuffer, txt::AbstractString)
   its = mutable(GtkTextIter(buffer))
   ite = mutable(GtkTextIter(buffer))
-  found = text_iter_backward_search(mutable( GtkTextIter(buffer,getproperty(buffer,:cursor_position,Int))),txt,its,ite,mutable(GtkTextIter(buffer,1)))
+  found = text_iter_backward_search(mutable( GtkTextIter(buffer,get_gtk_property(buffer,:cursor_position,Int))),txt,its,ite,mutable(GtkTextIter(buffer,1)))
 
   return (found==1,its,ite)
 end
@@ -150,7 +150,7 @@ get_iter_at_position(text_view::Gtk.GtkTextView,iter::MutableGtkTextIter,trailin
 	(Ptr{Gtk.GObject},Ptr{GtkTextIter},Ptr{Cint},Cint,Cint),text_view,iter,trailing,x,y)
 
 function get_iter_at_position(text_view::Gtk.GtkTextView,x::Integer,y::Integer)
-    buffer = getproperty(text_view,:buffer,GtkTextBuffer)
+    buffer = get_gtk_property(text_view,:buffer,GtkTextBuffer)
     iter = mutable(GtkTextIter(buffer))
     get_iter_at_position(text_view::Gtk.GtkTextView,iter,C_NULL,Int32(x),Int32(y))
     return nonmutable(buffer,iter)
@@ -183,8 +183,8 @@ text_view_buffer_to_window_coords(text_view::Gtk.GtkTextView,buffer_x::Integer,b
 function cursor_locations(text_view::Gtk.GtkTextView)
     weak = Gtk.mutable(Gtk.GdkRectangle)
     strong = Gtk.mutable(Gtk.GdkRectangle)
-    buffer = getproperty(text_view,:buffer,GtkTextBuffer)
-    iter = mutable( GtkTextIter(buffer, getproperty(buffer,:cursor_position,Int)) )
+    buffer = get_gtk_property(text_view,:buffer,GtkTextBuffer)
+    iter = mutable( GtkTextIter(buffer, get_gtk_property(buffer,:cursor_position,Int)) )
 
     ccall((:gtk_text_view_get_cursor_locations,libgtk),Cvoid,(Ptr{Gtk.GObject},Ptr{GtkTextIter},Ptr{Gtk.GdkRectangle},Ptr{Gtk.GdkRectangle}),text_view,iter,strong,weak)
     return (iter,strong[],weak[])
@@ -237,40 +237,40 @@ end
 
 #####  GtkClipboard #####
 
-Gtk.@gtktype GtkClipboard
+# Gtk.@gtktype GtkClipboard
 
-baremodule GdkAtoms
-    const NONE = 0x0000
-    const SELECTION_PRIMARY = 0x0001
-    const SELECTION_SECONDARY = 0x0002
-    const SELECTION_TYPE_ATOM = 0x0004
-    const SELECTION_TYPE_BITMAP = 0x0005
-    const SELECTION_TYPE_COLORMAP = 0x0007
-    const SELECTION_TYPE_DRAWABLE = 0x0011
-    const SELECTION_TYPE_INTEGER = 0x0013
-    const SELECTION_TYPE_PIXMAP = 0x0014
-    const SELECTION_TYPE_STRING = 0x001f
-    const SELECTION_TYPE_WINDOW = 0x0021
-    const SELECTION_CLIPBOARD = 0x0045
-end
+# baremodule GdkAtoms
+#     const NONE = 0x0000
+#     const SELECTION_PRIMARY = 0x0001
+#     const SELECTION_SECONDARY = 0x0002
+#     const SELECTION_TYPE_ATOM = 0x0004
+#     const SELECTION_TYPE_BITMAP = 0x0005
+#     const SELECTION_TYPE_COLORMAP = 0x0007
+#     const SELECTION_TYPE_DRAWABLE = 0x0011
+#     const SELECTION_TYPE_INTEGER = 0x0013
+#     const SELECTION_TYPE_PIXMAP = 0x0014
+#     const SELECTION_TYPE_STRING = 0x001f
+#     const SELECTION_TYPE_WINDOW = 0x0021
+#     const SELECTION_CLIPBOARD = 0x0045
+# end
 
-GtkClipboardLeaf(selection::UInt16) =  GtkClipboardLeaf(ccall((:gtk_clipboard_get,libgtk), Ptr{GObject},
-    (UInt16,), selection))
-GtkClipboardLeaf() = GtkClipboardLeaf(GdkAtoms.SELECTION_CLIPBOARD)
-clipboard_set_text(clip::GtkClipboard,text::AbstractString) = ccall((:gtk_clipboard_set_text,libgtk), Cvoid,
-    (Ptr{GObject}, Ptr{UInt8},Cint), clip, text, sizeof(text))
-clipboard_store(clip::GtkClipboard) = ccall((:gtk_clipboard_store,libgtk), Cvoid,
-    (Ptr{GObject},), clip)
+# GtkClipboardLeaf(selection::UInt16) =  GtkClipboardLeaf(ccall((:gtk_clipboard_get,libgtk), Ptr{GObject},
+#     (UInt16,), selection))
+# GtkClipboardLeaf() = GtkClipboardLeaf(GdkAtoms.SELECTION_CLIPBOARD)
+# clipboard_set_text(clip::GtkClipboard,text::AbstractString) = ccall((:gtk_clipboard_set_text,libgtk), Cvoid,
+#     (Ptr{GObject}, Ptr{UInt8},Cint), clip, text, sizeof(text))
+# clipboard_store(clip::GtkClipboard) = ccall((:gtk_clipboard_store,libgtk), Cvoid,
+#     (Ptr{GObject},), clip)
 
-#note: this needs main_loops to run
-function clipboard_wait_for_text(clip::GtkClipboard)
-    ptr = ccall((:gtk_clipboard_wait_for_text,libgtk), Ptr{UInt8},
-        (Ptr{GObject},), clip)
-    return ptr == C_NULL ? "" : unsafe_string(ptr)
-end
+# #note: this needs main_loops to run
+# function clipboard_wait_for_text(clip::GtkClipboard)
+#     ptr = ccall((:gtk_clipboard_wait_for_text,libgtk), Ptr{UInt8},
+#         (Ptr{GObject},), clip)
+#     return ptr == C_NULL ? "" : unsafe_string(ptr)
+# end
 
-text_buffer_copy_clipboard(buffer::GtkTextBuffer,clip::GtkClipboard)  = ccall((:gtk_text_buffer_copy_clipboard, libgtk),Cvoid,
-    (Ptr{GObject},Ptr{GObject}),buffer,clip)
+# text_buffer_copy_clipboard(buffer::GtkTextBuffer,clip::GtkClipboard)  = ccall((:gtk_text_buffer_copy_clipboard, libgtk),Cvoid,
+#     (Ptr{GObject},Ptr{GObject}),buffer,clip)
 
 
 ##
@@ -378,21 +378,6 @@ function GtkIconThemeLoadIconForScale(iconTheme,icon_name::AbstractString, size:
     return convert(GdkPixbuf,pixbuf)
 end
 
-Gtk.@Gtype GtkEntryBuffer Gtk.libgtk gtk_entry_buffer
-
-function delete_text(entry::GtkEntryBuffer, position::Integer, n_chars::Integer)
-    return ccall((:gtk_entry_buffer_delete_text,Gtk.libgtk),Ptr{Cvoid},(Ptr{Gtk.GObject},Cuint,Cint),entry,position,n_chars)
-end
-function insert_text(entry::GtkEntryBuffer, position::Integer, data::AbstractString, n_chars::Integer)
-    return ccall((:gtk_entry_buffer_insert_text,Gtk.libgtk),
-                 Ptr{Cvoid},
-                 (Ptr{Gtk.GObject},Cuint,Cstring,Cint),
-                 entry,position,pointer(data),n_chars)
-end
-function buffer(entry::Gtk.GtkEntry)
-    return convert(GtkEntryBuffer,ccall((:gtk_entry_get_buffer,Gtk.libgtk),Ptr{GtkEntryBuffer},(Ptr{Gtk.GObject},),entry))
-end
-
 ##GtkTreeStore
 function insert(store::GtkTreeStore, it::GtkTreeIter, parent::GtkTreeIter, pos::Int)
     ccall((:gtk_tree_store_insert, Gtk.libgtk), Cvoid,  (Ptr{Gtk.GObject},Ptr{Gtk.GtkTreeIter},Ptr{Gtk.GtkTreeIter},Cint),
@@ -486,10 +471,6 @@ function foreach(model::Gtk.GtkTreeModel, f::Function, data)
                 (Ptr{Gtk.GObject},Ptr{Cvoid}, Ptr{Cvoid}),
                 model,foreach_function,pointer_from_objref(data))
 end
-#GtkEventBox
-Gtk.@gtktype GtkEventBox
-GtkEventBoxLeaf() =  GtkEventBoxLeaf(ccall((:gtk_event_box_new ,libgtk), Ptr{GObject},
-        ()))
 
 #GtkDialog
 function response(dialog::Gtk.GtkDialog, response::Integer)
