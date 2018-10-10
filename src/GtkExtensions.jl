@@ -5,7 +5,7 @@ export text_iter_get_text, text_iter_forward_line, text_iter_backward_line, text
 	   text_iter_backward_word_start, text_iter_forward_search, text_iter_backward_search, show_iter,
 	   text_buffer_place_cursor, get_iter_at_position, text_view_window_to_buffer_coords, get_current_page_idx,
 	   set_current_page_idx, get_tab, set_position!, text_buffer_copy_clipboard, set_tab_label_text,
-       MutableGtkTextIter, GtkTextIters, @GtkEventBox,GtkEventBox, GtkCssProviderFromData!, GtkIconThemeAddResourcePath,
+       MutableGtkTextIter, GtkTextIters,GtkEventBox, GtkCssProviderFromData!, GtkIconThemeAddResourcePath,
        GtkIconThemeGetDefault, index, style_css, text, PROPAGATE, INTERRUPT, get_default_mod_mask,
        selection_bounds, end_iter, text_buffer_create_mark, text_buffer_get_iter_at_mark, line_count,
        cursor_locations, gdk_window_get_origin, g_timeout_add, g_idle_add, delete_text, insert_text, insert,
@@ -25,6 +25,8 @@ const INTERRUPT = convert(Cint,true)
 
 import Gtk.GConstants: GdkModifierType
 import Gtk.GdkKeySyms
+
+include("MenuUtils.jl")
 
 get_default_mod_mask() = ccall((:gtk_accelerator_get_default_mod_mask , libgtk),
     typeof(GdkModifierType.CONTROL),()
