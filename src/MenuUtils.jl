@@ -1,6 +1,6 @@
 export MenuItem, buildmenu
 
-type MenuItem
+mutable struct MenuItem
     txt::AbstractString
     cb::Function
     
