@@ -1,16 +1,16 @@
 module GtkExtensions
 
 # nice exports !
-export text_iter_get_text, text_iter_forward_line, text_iter_backward_line, text_iter_forward_to_line_end, text_iter_forward_word_end,
+export text_iter_forward_line, text_iter_backward_line, text_iter_forward_to_line_end, text_iter_forward_word_end,
 	   text_iter_backward_word_start, text_iter_forward_search, text_iter_backward_search, show_iter,
 	   text_buffer_place_cursor, get_iter_at_position, text_view_window_to_buffer_coords, get_current_page_idx,
 	   set_current_page_idx, get_tab, set_position!, text_buffer_copy_clipboard, set_tab_label_text,
        MutableGtkTextIter, GtkTextIters,GtkEventBox, GtkCssProviderFromData!, GtkIconThemeAddResourcePath,
-       GtkIconThemeGetDefault, index, style_css, text, PROPAGATE, INTERRUPT, get_default_mod_mask,
+       GtkIconThemeGetDefault, index, style_css, text, PROPAGATE, INTERRUPT,
        selection_bounds, end_iter, text_buffer_create_mark, text_buffer_get_iter_at_mark, line_count,
        cursor_locations, gdk_window_get_origin, g_timeout_add, g_idle_add, delete_text, insert_text, insert,
-       response, GdkKeySyms, offset, mutable, nonmutable, text_view_buffer_to_window_coords, grab_focus,
-       text_iter_backward_sentence_start, text_iter_forward_sentence_end, hide, line, show, scroll_to_iter, css_provider,
+       response, GdkKeySyms, offset, mutable, nonmutable, text_view_buffer_to_window_coords,
+       text_iter_backward_sentence_start, text_iter_forward_sentence_end, line, show, scroll_to_iter, css_provider,
 	   push!, GtkCssProviderLeaf, GtkCssProvider, getbuffer, iter_nth_child, GtkIconThemeLoadIconForScale,
        expand_root, model, set_cursor_on_cell, expand, treepath, foreach, selection, selected, select_value
 
@@ -27,17 +27,6 @@ import Gtk.GConstants: GdkModifierType
 import Gtk.GdkKeySyms
 
 include("MenuUtils.jl")
-
-get_default_mod_mask() = ccall((:gtk_accelerator_get_default_mod_mask , libgtk),
-    typeof(GdkModifierType.CONTROL),()
-)
-
-## Widget
-
-grab_focus(w::Gtk.GObject) = ccall((:gtk_widget_grab_focus , libgtk),Cvoid,(Ptr{Gtk.GObject},),w)#this should work?
-grab_focus(w::Gtk.GtkWindow) = ccall((:gtk_widget_grab_focus , libgtk),Cvoid,(Ptr{Gtk.GObject},),w)
-hide(w::Gtk.GtkWidget) = ccall((:gtk_widget_hide , libgtk),Cvoid,(Ptr{Gtk.GObject},),w)
-
 
 ## TextIters
 
@@ -59,14 +48,6 @@ getbuffer(it::MutableGtkTextIter) = convert(GtkTextBuffer,
 import Base.show
 show(io::IO, it::GtkTextIter) = println("GtkTextIter($(offset(it)))")
 
-function text_iter_get_text(it_start::MutableGtkTextIter,it_end::MutableGtkTextIter)
-	s = ccall((:gtk_text_iter_get_text,libgtk),Ptr{UInt8},(Ptr{GtkTextIter},Ptr{GtkTextIter}),it_start,it_end)
-    return s == C_NULL ? "" : unsafe_string(s)
-end
-function text_iter_get_text(it_start::GtkTextIter,it_end::GtkTextIter)
-	s = ccall((:gtk_text_iter_get_text,libgtk),Ptr{UInt8},(Ref{GtkTextIter},Ref{GtkTextIter}),it_start,it_end)
-    return s == C_NULL ? "" : unsafe_string(s)
-end
 
 text_iter_forward_line(it::MutableGtkTextIter)  = ccall((:gtk_text_iter_forward_line,  libgtk),Cint,(Ptr{GtkTextIter},),it)
 text_iter_backward_line(it::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_line, libgtk),Cint,(Ptr{GtkTextIter},),it)
@@ -77,7 +58,6 @@ text_iter_backward_word_start(it::MutableGtkTextIter) = ccall((:gtk_text_iter_ba
 
 text_iter_backward_sentence_start(it::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_sentence_start, libgtk),Cint,(Ptr{GtkTextIter},),it)
 text_iter_forward_sentence_end(it::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_sentence_end, libgtk),Cint,(Ptr{GtkTextIter},),it)
-
 
 text_iter_forward_search(it::MutableGtkTextIter, txt::AbstractString, start::MutableGtkTextIter, stop::MutableGtkTextIter, limit::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_search, libgtk),
   Cint,
@@ -333,32 +313,6 @@ gdk_keyval_name(val) = unsafe_string(
     ccall((:gdk_keyval_name,libgtk),Ptr{UInt8},(Cuint,),val),
 true)
 
-## GLib
-
-
-function g_timeout_add(interval::Integer,cb,user_data)
-
-    callback = cfunction(cb,Cint,(Ptr{Cvoid},))
-
-    ref, deref = Gtk.GLib.gc_ref_closure(user_data)#not sure about that
-    interval = UInt32(interval)
-
-    return ccall((:g_timeout_add, Gtk.GLib.libglib),Cint,
-        (UInt32, Ptr{Cvoid}, Ptr{Cvoid}),
-         interval, callback, ref)
-end
-
-function g_idle_add(cb,user_data)
-
-    callback = cfunction(cb,Cint,(Ptr{Cvoid},))
-
-    ref, deref = Gtk.GLib.gc_ref_closure(user_data)#not sure about that
-
-    return ccall((:g_idle_add, Gtk.GLib.libglib),Cint,
-        (Ptr{Cvoid}, Ptr{Cvoid}),
-         callback, ref)
-end
-
 
 GtkIconThemeGetDefault() =  ccall((:gtk_icon_theme_get_default,Gtk.libgtk),Ptr{GObject},())
 
@@ -394,9 +348,9 @@ function iter_nth_child(treeModel::Gtk.GtkTreeModel, iter::Gtk.Mutable{Gtk.GtkTr
         (Ptr{Gtk.GObject}, Ptr{GtkTreeIter}, Ptr{Gtk.GtkTreeIter}, Cint),
         treeModel, iter, C_NULL, n - 1) # 0-based
   else
-      ret = ccall((:gtk_tree_model_iter_nth_child, Gtk.libgtk), Cint,
-          (Ptr{Gtk.GObject}, Ptr{Gtk.GtkTreeIter}, Ptr{Gtk.GtkTreeIter}, Cint),
-          treeModel, iter, Gtk.mutable(piter), n - 1) # 0-based
+    ret = ccall((:gtk_tree_model_iter_nth_child, Gtk.libgtk), Cint,
+        (Ptr{Gtk.GObject}, Ptr{Gtk.GtkTreeIter}, Ptr{Gtk.GtkTreeIter}, Cint),
+        treeModel, iter, Gtk.mutable(piter), n - 1) # 0-based
   end
     ret != 0
 end
@@ -472,20 +426,6 @@ function foreach(model::Gtk.GtkTreeModel, f::Function, data)
    ccall((:gtk_tree_model_foreach, Gtk.libgtk),      Cvoid,
                 (Ptr{Gtk.GObject},Ptr{Cvoid}, Ptr{Cvoid}),
                 model,foreach_function,pointer_from_objref(data))
-end
-
-#GtkDialog
-function response(dialog::Gtk.GtkDialog, response::Integer)
-    ccall((:gtk_dialog_response, Gtk.libgtk), Cvoid,
-       (Ptr{Gtk.GObject}, Cint),
-       dialog,response)
-end
-
-## GtkStatusbar
-
-function text(s::GtkStatusbar,txt::AbstractString)
-    sbidx = Gtk.context_id(s, "context")
-    push!(s,sbidx,txt)
 end
 
 function __init__()
