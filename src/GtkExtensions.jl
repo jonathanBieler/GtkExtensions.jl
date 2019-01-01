@@ -428,8 +428,9 @@ function foreach(model::Gtk.GtkTreeModel, f::Function, data)
                 model,foreach_function,pointer_from_objref(data))
 end
 
+global default_css_provider = convert(Ptr{Gtk.GObject}, 0)
 function __init__()
-    global const default_css_provider = GtkCssProviderLeaf(
+    global default_css_provider = GtkCssProviderLeaf(
         ccall((:gtk_css_provider_get_default,libgtk),Ptr{Gtk.GObject},())
     )
 end
