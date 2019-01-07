@@ -422,14 +422,14 @@ end
 
 #GtkTreeModel
 function foreach(model::Gtk.GtkTreeModel, f::Function, data)
-  foreach_function = cfunction(f, Cint, (Ptr{Gtk.GObject}, Ptr{Gtk.GtkTreePath}, Ptr{Gtk.GtkTreeIter}, Ptr{Cvoid}))
+  foreach_function = @cfunction($f, Cint, (Ptr{Gtk.GObject}, Ptr{Gtk.GtkTreePath}, Ptr{Gtk.GtkTreeIter}, Ptr{Cvoid}))
    ccall((:gtk_tree_model_foreach, Gtk.libgtk),      Cvoid,
                 (Ptr{Gtk.GObject},Ptr{Cvoid}, Ptr{Cvoid}),
                 model,foreach_function,pointer_from_objref(data))
 end
 
 function __init__()
-    global const default_css_provider = GtkCssProviderLeaf(
+    global default_css_provider = GtkCssProviderLeaf(
         ccall((:gtk_css_provider_get_default,libgtk),Ptr{Gtk.GObject},())
     )
 end
