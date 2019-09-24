@@ -1,18 +1,17 @@
 module GtkExtensions
 
 # nice exports !
-export text_iter_forward_line, text_iter_backward_line, text_iter_forward_to_line_end, text_iter_forward_word_end,
-	   text_iter_backward_word_start, text_iter_forward_search, text_iter_backward_search, show_iter,
-	   text_buffer_place_cursor, get_iter_at_position, text_view_window_to_buffer_coords, get_current_page_idx,
-	   set_current_page_idx, get_tab, set_position!, text_buffer_copy_clipboard, set_tab_label_text,
-       MutableGtkTextIter, GtkTextIters,GtkEventBox, GtkCssProviderFromData!, GtkIconThemeAddResourcePath,
-       GtkIconThemeGetDefault, index, style_css, text, PROPAGATE, INTERRUPT,
-       selection_bounds, end_iter, text_buffer_create_mark, text_buffer_get_iter_at_mark, line_count,
-       cursor_locations, gdk_window_get_origin, g_timeout_add, g_idle_add, delete_text, insert_text, insert,
-       response, GdkKeySyms, offset, mutable, nonmutable, text_view_buffer_to_window_coords,
-       text_iter_backward_sentence_start, text_iter_forward_sentence_end, line, show, scroll_to_iter, css_provider,
-	   push!, GtkCssProviderLeaf, GtkCssProvider, getbuffer, iter_nth_child, GtkIconThemeLoadIconForScale,
-       expand_root, model, set_cursor_on_cell, expand, treepath, foreach, selection, selected, select_value
+export show_iter,
+    get_iter_at_position, text_view_window_to_buffer_coords, get_current_page_idx,
+    set_current_page_idx, get_tab, set_position!, text_buffer_copy_clipboard, set_tab_label_text,
+    MutableGtkTextIter, GtkTextIters,GtkEventBox, GtkCssProviderFromData!, GtkIconThemeAddResourcePath,
+    GtkIconThemeGetDefault, index, style_css, text, PROPAGATE, INTERRUPT,
+    end_iter, line_count,
+    cursor_locations, gdk_window_get_origin, g_timeout_add, g_idle_add, delete_text, insert_text, insert,
+    response, GdkKeySyms, offset, mutable, nonmutable, text_view_buffer_to_window_coords,
+    line, show, scroll_to_iter, css_provider,
+    push!, GtkCssProviderLeaf, GtkCssProvider, getbuffer, iter_nth_child, GtkIconThemeLoadIconForScale,
+    expand_root, model, set_cursor_on_cell, expand, treepath, foreach, selection, selected, select_value
 
 using Gtk
 
@@ -48,79 +47,13 @@ getbuffer(it::MutableGtkTextIter) = convert(GtkTextBuffer,
 import Base.show
 show(io::IO, it::GtkTextIter) = println("GtkTextIter($(offset(it)))")
 
-
-text_iter_forward_line(it::MutableGtkTextIter)  = ccall((:gtk_text_iter_forward_line,  libgtk),Cint,(Ptr{GtkTextIter},),it)
-text_iter_backward_line(it::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_line, libgtk),Cint,(Ptr{GtkTextIter},),it)
-text_iter_forward_to_line_end(it::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_to_line_end, libgtk),Cint,(Ptr{GtkTextIter},),it)
-
-text_iter_forward_word_end(it::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_word_end, libgtk),Cint,(Ptr{GtkTextIter},),it)
-text_iter_backward_word_start(it::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_word_start, libgtk),Cint,(Ptr{GtkTextIter},),it)
-
-text_iter_backward_sentence_start(it::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_sentence_start, libgtk),Cint,(Ptr{GtkTextIter},),it)
-text_iter_forward_sentence_end(it::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_sentence_end, libgtk),Cint,(Ptr{GtkTextIter},),it)
-
-text_iter_forward_search(it::MutableGtkTextIter, txt::AbstractString, start::MutableGtkTextIter, stop::MutableGtkTextIter, limit::MutableGtkTextIter) = ccall((:gtk_text_iter_forward_search, libgtk),
-  Cint,
-  (Ptr{GtkTextIter},Ptr{UInt8},Cint,Ptr{GtkTextIter},Ptr{GtkTextIter},Ptr{GtkTextIter}),
-  it,string(txt),Int32(2),start,stop,limit
-)
-function text_iter_forward_search(buffer::GtkTextBuffer, txt::AbstractString)
-  its = mutable(GtkTextIter(buffer))
-  ite = mutable(GtkTextIter(buffer))
-  found = text_iter_forward_search(mutable( GtkTextIter(buffer,get_gtk_property(buffer,:cursor_position,Int))),txt,its,ite,mutable(GtkTextIter(buffer,length(buffer)+1)))
-
-  return (found==1,its,ite)
-end
-
-text_iter_backward_search(it::MutableGtkTextIter, txt::AbstractString, start::MutableGtkTextIter, stop::MutableGtkTextIter, limit::MutableGtkTextIter) = ccall((:gtk_text_iter_backward_search, libgtk),
-  Cint,
-  (Ptr{GtkTextIter},Ptr{UInt8},Cint,Ptr{GtkTextIter},Ptr{GtkTextIter},Ptr{GtkTextIter}),
-  it,string(txt),Int32(2),start,stop,limit
-)
-function text_iter_backward_search(buffer::GtkTextBuffer, txt::AbstractString)
-  its = mutable(GtkTextIter(buffer))
-  ite = mutable(GtkTextIter(buffer))
-  found = text_iter_backward_search(mutable( GtkTextIter(buffer,get_gtk_property(buffer,:cursor_position,Int))),txt,its,ite,mutable(GtkTextIter(buffer,1)))
-
-  return (found==1,its,ite)
-end
-
 function show_iter(it::MutableGtkTextIter,buffer::GtkTextBuffer,color::Int)
     Gtk.apply_tag(buffer, color > 0 ? "debug1" : "debug2",it, it+1)
 end
 
-##
-function selection_bounds(buffer::Gtk.GtkTextBuffer)
-    its = mutable( GtkTextIter(buffer) )
-    ite = mutable( GtkTextIter(buffer) )
-    return (convert(Bool,ccall((:gtk_text_buffer_get_selection_bounds,libgtk),Cint,(Ptr{Gtk.GObject},
-            Ptr{GtkTextIter},Ptr{GtkTextIter}),buffer,its,ite)),its,ite)
-end
-function selection_bounds(buffer::Gtk.GtkTextBuffer,ins::GtkTextIter,bound::GtkTextIter)
-    ccall((:gtk_text_buffer_select_range,libgtk),Cvoid,(Ptr{Gtk.GObject},Ref{GtkTextIter},Ref{GtkTextIter}),buffer,ins,bound)
-end
-function selection_bounds(buffer::Gtk.GtkTextBuffer,ins::MutableGtkTextIter,bound::MutableGtkTextIter)
-    ccall((:gtk_text_buffer_select_range,libgtk),Cvoid,(Ptr{Gtk.GObject},Ptr{GtkTextIter},Ptr{GtkTextIter}),buffer,ins,bound)
-end
-##
 function end_iter(buffer::Gtk.GtkTextBuffer)
     iter = Gtk.mutable(GtkTextIter)
     ccall((:gtk_text_buffer_get_end_iter,libgtk),Cvoid,(Ptr{Gtk.GObject},Ptr{GtkTextIter}),buffer,iter)
-    return iter
-end
-
-text_buffer_place_cursor(buffer::GtkTextBuffer,it::GtkTextIter)  = ccall((:gtk_text_buffer_place_cursor,  libgtk),Cvoid,(Ptr{Gtk.GObject},Ref{GtkTextIter}),buffer,it)
-text_buffer_place_cursor(buffer::GtkTextBuffer,pos::Int) = text_buffer_place_cursor(buffer,GtkTextIter(buffer,pos+1))
-text_buffer_place_cursor(buffer::GtkTextBuffer,it::MutableGtkTextIter) = text_buffer_place_cursor(buffer,nonmutable(buffer,it))
-
-text_buffer_create_mark(buffer::GtkTextBuffer,mark_name,it::GtkTextIters,left_gravity::Bool)  = GtkTextMarkLeaf(ccall((:gtk_text_buffer_create_mark, libgtk),Ptr{GObject},
-    (Ptr{Gtk.GObject},Ptr{UInt8},GtkTextIters,Cint),buffer,mark_name,it,left_gravity))
-
-text_buffer_create_mark(buffer::GtkTextBuffer,it::GtkTextIters)  = text_buffer_create_mark(buffer,C_NULL,it,false)
-
-function text_buffer_get_iter_at_mark(buffer::GtkTextBuffer,mark::GtkTextMark)
-    iter = mutable(GtkTextIter())
-    ccall((:gtk_text_buffer_get_iter_at_mark,  libgtk),Cvoid,(Ptr{Gtk.GObject},Ptr{MutableGtkTextIter},Ptr{Gtk.GObject}),buffer,iter,mark)
     return iter
 end
 
@@ -285,15 +218,15 @@ push!(context::GtkStyleContext, provider::GtkCssProvider, priority::Integer) =
   ccall((:gtk_style_context_add_provider, libgtk), Cvoid, (Ptr{GObject}, Ptr{GObject}, Cuint),
 		 context, provider, priority)
 
-function style_css(w::Gtk.GtkWidget,css::AbstractString)
-  sc = Gtk.G_.style_context(w)
-  provider = GtkCssProvider()
-  push!(sc, GtkCssProviderFromData!(provider,data=css), 600)
+function style_css(w::Gtk.GtkWidget,css::String)
+    sc = Gtk.G_.style_context(w)
+    provider = GtkCssProvider()
+    push!(sc, GtkCssProviderFromData!(provider,data=css), 600)
 end
 
 function style_css(w::Gtk.GtkWidget,provider::GtkCssProvider)
-  sc = Gtk.G_.style_context(w)
-  push!(sc, provider, 600)
+    sc = Gtk.G_.style_context(w)
+    push!(sc, provider, 600)
 end
 
 ## Gdk

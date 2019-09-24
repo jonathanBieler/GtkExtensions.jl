@@ -14,6 +14,4 @@ using GtkExtensions, Gtk
     showall(w)
 
     it = GtkTextIter(b,1)
-    text_buffer_place_cursor(b,it)
-
 end
