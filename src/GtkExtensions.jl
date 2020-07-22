@@ -44,9 +44,6 @@ getbuffer(it::MutableGtkTextIter) = convert(GtkTextBuffer,
     ccall((:gtk_text_iter_get_buffer, libgtk),Ptr{GtkTextBuffer},(Ptr{GtkTextIter},),it)
 )
 
-import Base.show
-show(io::IO, it::GtkTextIter) = println("GtkTextIter($(offset(it)))")
-
 function show_iter(it::MutableGtkTextIter,buffer::GtkTextBuffer,color::Int)
     Gtk.apply_tag(buffer, color > 0 ? "debug1" : "debug2",it, it+1)
 end
@@ -366,6 +363,10 @@ function __init__()
     global default_css_provider = GtkCssProviderLeaf(
         ccall((:gtk_css_provider_get_default,libgtk),Ptr{Gtk.GObject},())
     )
+
+    #import Base.show
+    #show(io::IO, it::GtkTextIter) = println("GtkTextIter($(offset(it)))")
+
 end
 
 end#module
